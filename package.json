@@ -1,0 +1,55 @@
+{
+  "name": "fsm-voice-mcp",
+  "version": "0.1.0",
+  "description": "Map an XState-compatible finite state machine to voice-driven MCP tools & resources (Alexa+ MCP Toolkit compatible).",
+  "type": "module",
+  "license": "MIT",
+  "author": "AlSayed Gamal",
+  "homepage": "https://github.com/AlSayedGamal/fsm-voice-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlSayedGamal/fsm-voice-mcp.git"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "alexa",
+    "alexa-plus",
+    "fsm",
+    "state-machine",
+    "xstate",
+    "voice",
+    "vui"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "check": "npm run typecheck && npm test",
+    "example:server": "tsx examples/server.ts"
+  },
+  "dependencies": {
+    "zod": "^4.2.0"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.15.0",
+    "express": "^5.1.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.0"
+  }
+}
