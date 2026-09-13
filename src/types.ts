@@ -11,8 +11,16 @@ export type FsmTransition<TContext extends object> =
       target?: string;
       /** Only take this transition if the guard returns true. Mirrors XState's `guard`. */
       guard?: (context: TContext, event: FsmEvent) => boolean;
-      /** Merge the returned partial context after the transition. A simplified, single-function `assign`. */
-      actions?: (context: TContext, event: FsmEvent) => Partial<TContext> | void;
+      /**
+       * Merge the returned partial context after the transition. A
+       * simplified, single-function `assign` — may return a Promise, so a
+       * transition can run a real side effect (call an API, push a draft
+       * PR) and fold its result into context before the voice reply is sent.
+       */
+      actions?: (
+        context: TContext,
+        event: FsmEvent,
+      ) => Partial<TContext> | void | Promise<Partial<TContext> | void>;
     };
 
 export interface FsmStateConfig<TContext extends object> {
@@ -50,6 +58,12 @@ export interface FsmSnapshot<TContext extends object> {
 export type FsmSendResult<TContext extends object> =
   | { ok: true; snapshot: FsmSnapshot<TContext> }
   | { ok: false; reason: "no-transition" | "guard-rejected"; snapshot: FsmSnapshot<TContext> };
+
+/** Named side effect for `fsmFromStatusGraph`'s `onEnter` map. Same shape as a transition's `actions`. */
+export type FsmEnterEffect<TContext extends object> = (
+  context: TContext,
+  event: FsmEvent,
+) => Partial<TContext> | void | Promise<Partial<TContext> | void>;
 
 /** Per tool-call context an adapter can pass through, e.g. to key sessions by caller. */
 export interface FsmMcpCallContext {

@@ -102,7 +102,7 @@ export function createFsmMcpBridge<TContext extends object>(
     ): Promise<McpToolResult> => {
       const actor = actorFor(ctx);
       const before = actor.getSnapshot();
-      const result = actor.send({ type: eventType, ...args });
+      const result = await actor.send({ type: eventType, ...args });
 
       if (result.ok) {
         return { content: [{ type: "text", text: speak(result.snapshot) }] };

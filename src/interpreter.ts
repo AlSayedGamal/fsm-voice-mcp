@@ -2,7 +2,8 @@ import type { FsmConfig, FsmEvent, FsmSendResult, FsmSnapshot } from "./types.js
 
 export interface FsmActor<TContext extends object> {
   getSnapshot(): FsmSnapshot<TContext>;
-  send(event: FsmEvent): FsmSendResult<TContext>;
+  /** Async because a transition's `actions` may run a real side effect (e.g. push a draft PR) before the resulting context is final. */
+  send(event: FsmEvent): Promise<FsmSendResult<TContext>>;
   reset(): void;
 }
 
@@ -50,7 +51,7 @@ export function createFsmActor<TContext extends object>(
     return snapshotOf(config, value, context);
   }
 
-  function send(event: FsmEvent): FsmSendResult<TContext> {
+  async function send(event: FsmEvent): Promise<FsmSendResult<TContext>> {
     const stateConfig = config.states[value];
     const transition = stateConfig?.on?.[event.type];
 
@@ -64,7 +65,7 @@ export function createFsmActor<TContext extends object>(
       return { ok: false, reason: "guard-rejected", snapshot: getSnapshot() };
     }
 
-    const patch = normalized.actions?.(context, event);
+    const patch = await normalized.actions?.(context, event);
     if (patch) {
       context = { ...context, ...patch };
     }

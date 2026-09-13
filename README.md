@@ -108,6 +108,63 @@ npm run example:server
   instance; pass `getSessionId` to key a separate instance per caller
   (e.g. per Alexa+ conversation).
 
+## Importing a workflow from a task-management system
+
+Most task boards (Jira, Trello, Linear, GitHub Projects) already expose
+their workflow as "from this status, these are the allowed next statuses"
+— an adjacency graph. `fsmFromStatusGraph` turns that directly into an
+`FsmConfig`, so you don't hand-write states for a workflow that already
+exists elsewhere:
+
+```ts
+import { fsmFromStatusGraph, createFsmMcpBridge } from "fsm-voice-mcp";
+
+interface TicketContext {
+  prUrl?: string;
+}
+
+const ticketWorkflow = fsmFromStatusGraph<TicketContext>({
+  id: "ticket",
+  initial: "todo",
+  context: {},
+  graph: {
+    todo: ["in_progress"],
+    in_progress: ["to_review"],
+    to_review: ["approved", "todo"], // approve, or reject back to todo
+    approved: ["done"],
+    done: [], // no outgoing edges -> final
+  },
+  prompts: {
+    to_review: "In review. A draft pull request is up.",
+  },
+  onEnter: {
+    // Runs once, on any transition landing on "to_review" — awaited
+    // before the voice reply is built, so a real side effect (not just a
+    // context update) can happen on entry to a state.
+    to_review: async () => {
+      const pr = await pushDraftPullRequest();
+      return { prUrl: pr.url };
+    },
+  },
+});
+
+const bridge = createFsmMcpBridge(ticketWorkflow);
+// -> ticket_move_to_in_progress, ticket_move_to_to_review,
+//    ticket_move_to_approved, ticket_move_to_todo (the reject path),
+//    ticket_move_to_done
+```
+
+One event (and MCP tool) is generated per destination status, valid from
+every status that lists it as reachable — so "approved (or back to
+todo)" from `to_review` becomes two ordinary generated tools, not special
+cased. See [`examples/task-workflow.ts`](./examples/task-workflow.ts) for
+the full runnable version.
+
+`actions` (and so `onEnter`) may be **async** — it's awaited before the
+transition's result (and voice reply) is produced, so entering a state
+can genuinely call an API (create a ticket, push a draft PR) rather than
+only update in-memory context.
+
 ## What "XState-compatible" means here
 
 `FsmConfig` mirrors the shape of an XState config — `initial`, `context`,
@@ -128,8 +185,9 @@ subset) into an `FsmConfig` at the boundary; a direct adapter for
 ## API
 
 - `createFsmMcpBridge(config, options?) -> { tools, resources, getSnapshot, reset }`
-- `createFsmActor(config) -> { getSnapshot, send, reset }` — the interpreter, if you want to drive the machine directly (e.g. from a UI) without going through MCP.
+- `createFsmActor(config) -> { getSnapshot, send, reset }` — the interpreter, if you want to drive the machine directly (e.g. from a UI) without going through MCP. `send` is async.
 - `collectEventTypes(config) -> Map<eventType, stateNames[]>`
+- `fsmFromStatusGraph(input) -> FsmConfig` — build a config from a status adjacency graph instead of hand-writing states (see [above](#importing-a-workflow-from-a-task-management-system)).
 - `registerFsmMcpBridge(server, bridge, options?)` — adapter for any MCP server exposing `registerTool` / `registerResource` (works with `@modelcontextprotocol/sdk` and the Alexa+ MCP Toolkit SDK).
 
 See [`src/types.ts`](./src/types.ts) for full type definitions and

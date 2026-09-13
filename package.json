@@ -1,6 +1,6 @@
 {
   "name": "fsm-voice-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Map an XState-compatible finite state machine to voice-driven MCP tools & resources (Alexa+ MCP Toolkit compatible).",
   "type": "module",
   "license": "MIT",
